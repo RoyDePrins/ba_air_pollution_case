@@ -35,7 +35,7 @@ def create_station_overview_table(city_station_df: pd.DataFrame) -> None:
 
 
 def create_station_overview_map(city_station_df: pd.DataFrame, selected_city: str) -> None:
-    fig = px.scatter_mapbox(
+    fig = px.scatter_map(
         city_station_df,
         lat="lat",
         lon="lon",
@@ -45,7 +45,6 @@ def create_station_overview_map(city_station_df: pd.DataFrame, selected_city: st
         zoom=10,
         height=500,
         title = f"Location of stations in city of {selected_city}.",
-        mapbox_style="open-street-map",
     )
     fig.update_traces(marker=dict(size=10))
 

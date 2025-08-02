@@ -83,7 +83,7 @@ def create_pollution_bar_chart(
 
 
 def create_pollution_city_map(city_pollution_df: pd.DataFrame) -> None:
-    fig = px.scatter_mapbox(
+    fig = px.scatter_map(
         city_pollution_df,
         lat="lat",
         lon="lon",
@@ -94,7 +94,6 @@ def create_pollution_city_map(city_pollution_df: pd.DataFrame) -> None:
         height=600,
         width=800,
         title = f"Location of these top {TOP_NB_POLLUTED_CITIES} polluted cities.",
-        mapbox_style="open-street-map"
     )
 
     st.plotly_chart(fig)

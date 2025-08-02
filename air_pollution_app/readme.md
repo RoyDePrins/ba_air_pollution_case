@@ -4,7 +4,7 @@ This Streamlit application allows users to explore and analyze hourly air pollut
 
 - **Top Polluting Cities:** View and compare the most polluted cities over a selected period.
 - **Hourly Pollution View:** Inspect pollution levels by city and pollutant type per hour.
-# TODO make sure to update this with new view
+- **Station Details View:** Get an overview of the different stations per city and their details.
 
 ## Run the app
 
@@ -15,4 +15,5 @@ streamlit run app.py
 ```
 
 ## Data Source
+
 All pollution data is retrieved from [IRCELINE](https://www.irceline.be/en/documentation/open-data).
