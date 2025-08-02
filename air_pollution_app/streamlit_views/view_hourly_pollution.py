@@ -7,7 +7,7 @@ from data.irceline_data_fetcher import aggregate_pollution_data
 
 
 def render_hourly_pollution_view(start_date: str, end_date: str) -> None:
-    city_pollution_pd = aggregate_pollution_data(start=start_date, end=end_date)
+    city_pollution_pd = aggregate_pollution_data(start_date, end_date)
 
     # Ask user input
     selected_city = st.selectbox("Select City", sorted(city_pollution_pd["city"].unique()))
@@ -25,7 +25,11 @@ def render_hourly_pollution_view(start_date: str, end_date: str) -> None:
     )
 
     # Create pollution charts
-    create_hourly_pollution_line_charts(pollution_per_city)
+    create_hourly_pollution_line_charts(
+        pollution_per_city,
+        start_date,
+        end_date,
+    )
 
 
 def agg_hourly_pollution_for_city(
@@ -35,7 +39,7 @@ def agg_hourly_pollution_for_city(
 ) -> pd.DataFrame:
     return (
         city_pollution_pd
-        .query(f"city == '{selected_city}'")
+        .query("city == @selected_city")
         .groupby(["city", "pollutant", "timestamp"])
         .agg(
             value=("value", aggregation_func),
@@ -45,17 +49,21 @@ def agg_hourly_pollution_for_city(
     )
 
 
-def create_hourly_pollution_line_charts(city_pollution_df: pd.DataFrame) -> None:
+def create_hourly_pollution_line_charts(
+    city_pollution_df: pd.DataFrame,
+    start_date: str,
+    end_date: str,
+) -> None:
     for pollutant in POLLUTANTS.keys():
-        pollutant_df = city_pollution_df[city_pollution_df["pollutant"] == pollutant]
+        pollutant_df = city_pollution_df.query("pollutant == @pollutant")
 
         fig = px.line(
             pollutant_df,
             x="timestamp",
             y="value",
-            title=f"{pollutant} - Hourly Values",
-            labels={"value": f"{pollutant}", "timestamp": "Time"},
-            hover_data={"timestamp": True, "value": True, "nb_stations": True},
+            title=f"Hourly {pollutant} Values between {start_date} and {end_date}.",
+            hover_data={"timestamp", "value", "nb_stations"},
+            labels={"value": "Pollution Value", "timestamp": "Timestamp", "nb_stations": "Number of Stations"},
         )
         fig.update_layout(height=250, margin={"t": 50, "l": 0, "r": 0, "b": 0})
 

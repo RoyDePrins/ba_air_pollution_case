@@ -1,9 +1,8 @@
 import streamlit as st
-import altair as alt
 import plotly.express as px
 import pandas as pd
 
-from config import POLLUTANTS, AGGREGATION_FUNCTIONS
+from config import POLLUTANTS, AGGREGATION_FUNCTIONS, TOP_NB_POLLUTED_CITIES
 from data.irceline_data_fetcher import aggregate_pollution_data
 
 
@@ -11,21 +10,28 @@ def render_top_polluting_view(start_date: str, end_date: str) -> None:
     # Ask user input
     pollutant = st.selectbox("Select a Pollutant", list(POLLUTANTS.keys()))
     aggregation_method = st.selectbox(
-        "Select aggregation method for time and multiple stations",
+        "Select aggregation method for selected period and multiple stations",
         options=AGGREGATION_FUNCTIONS.keys(),
         index=0
     )
+    aggregation_func = AGGREGATION_FUNCTIONS[aggregation_method]
 
     # Aggregate pollution data per city
     pollution_per_city = agg_pollution_per_city(
         start_date,
         end_date,
         pollutant,
-        AGGREGATION_FUNCTIONS[aggregation_method]
+        aggregation_func,
     )
 
     # Create charts
-    create_pollution_bar_chart(pollution_per_city)
+    create_pollution_bar_chart(
+        pollution_per_city,
+        start_date,
+        end_date,
+        pollutant,
+        aggregation_func,
+    )
     create_pollution_city_map(pollution_per_city)
 
 
@@ -34,11 +40,10 @@ def agg_pollution_per_city(
     end_date: str,
     pollutant: str,
     aggregation_func: str,
-    top_records_to_keep: int = 10
 ) -> pd.DataFrame:
     return (
-        aggregate_pollution_data(start=start_date, end=end_date)
-        .query(f"pollutant == '{pollutant}'")
+        aggregate_pollution_data(start_date, end_date)
+        .query("pollutant == @pollutant")
         .groupby("city")
         .agg(
             value=("value", aggregation_func),
@@ -48,21 +53,33 @@ def agg_pollution_per_city(
         )
         .sort_values("value", ascending=False)
         .reset_index()
-        .head(top_records_to_keep)
+        .head(TOP_NB_POLLUTED_CITIES)
     )
 
 
-def create_pollution_bar_chart(city_pollution_df: pd.DataFrame) -> None:
-    bar_chart = alt.Chart(city_pollution_df.reset_index()).mark_bar(color="crimson").encode(
-        x=alt.X("city:N", sort=list(city_pollution_df.index), title="City"),
-        y=alt.Y("value:Q", title="Maximum Pollution over given period"),
-        tooltip=["city", "value", "nb_stations"]
-    ).properties(
+def create_pollution_bar_chart(
+    city_pollution_df: pd.DataFrame,
+    start_date: str,
+    end_date: str,
+    pollutant: str,
+    aggregation_func: str,
+) -> None:
+    fig = px.bar(
+        city_pollution_df.reset_index(),
+        x="city",
+        y="value",
+        title=f"Top {TOP_NB_POLLUTED_CITIES} polluted cities based on the {aggregation_func} {pollutant} between {start_date} and {end_date}.",
+        color_discrete_sequence=["crimson"],
+        hover_data=["city", "value", "nb_stations"],
+        labels={"value": "Pollution Value", "city": "City", "nb_stations": "Number of Stations"},
         width=700,
-        height=400
+        height=400,
+    )
+    fig.update_layout(
+        xaxis=dict(categoryorder='array', categoryarray=city_pollution_df.index.tolist()),
     )
 
-    st.altair_chart(bar_chart)
+    st.plotly_chart(fig)
 
 
 def create_pollution_city_map(city_pollution_df: pd.DataFrame) -> None:
@@ -71,13 +88,13 @@ def create_pollution_city_map(city_pollution_df: pd.DataFrame) -> None:
         lat="lat",
         lon="lon",
         size="value",
-        hover_data={"city": True, "value": True, "nb_stations": True},
+        hover_data=["city", "value", "nb_stations"],
+        labels={"city": "City", "value": "Pollution Value", "nb_stations": "Number of Stations", "lat": "Latitude", "lon": "Longitude"},
         zoom=7,
         height=600,
         width=800,
+        title = f"Location of these top {TOP_NB_POLLUTED_CITIES} polluted cities.",
+        mapbox_style="open-street-map"
     )
-
-    fig.update_layout(mapbox_style="open-street-map")
-    fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
 
     st.plotly_chart(fig)

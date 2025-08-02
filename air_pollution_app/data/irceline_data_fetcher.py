@@ -38,8 +38,8 @@ def fetch_station_timeseries(station_id: str) -> List[Dict]:
     return fetch_url(url)
 
 
-def fetch_timeseries_data(timeseries_id: str, start: str, end: str) -> List[Dict]:
-    url = f"{BASE_URL}/timeseries/{timeseries_id}/getData?timespan={start}TZ/{end}TZ"
+def fetch_timeseries_data(timeseries_id: str, start_date: str, end_date: str) -> List[Dict]:
+    url = f"{BASE_URL}/timeseries/{timeseries_id}/getData?timespan={start_date}TZ/{end_date}TZ"
     return fetch_url(url)
 
 
@@ -69,12 +69,12 @@ def is_in_region(lat: float, lon: float) -> bool:
 
 
 @st.cache_data
-def aggregate_pollution_data(start: str, end: str) -> pd.DataFrame:
+def aggregate_pollution_data(start_date: str, end_date: str) -> pd.DataFrame:
     stations = fetch_stations()
     data_rows = []
 
     for station in stations:
-        lon, lat, _ = station.get("geometry").get("coordinates", [None, None, None])
+        lon, lat, _ = station.get("geometry").get("coordinates")
         if not is_in_region(lat, lon):
             continue
 
@@ -88,9 +88,9 @@ def aggregate_pollution_data(start: str, end: str) -> pd.DataFrame:
             phenomenon_id = ts_details.get("phenomenon").get("id")
             for pollutant_name, pollution_id in POLLUTANTS.items():
                 if phenomenon_id == pollution_id:
-                    values = fetch_timeseries_data(ts_id, start, end).get("values")
+                    values = fetch_timeseries_data(ts_id, start_date, end_date).get("values")
                     for ts_value in values:
-                        timestamp = datetime.fromtimestamp(int(ts_value["timestamp"]) / 1000, UTC).strftime("%Y-%m-%d %H:%M:%S")
+                        timestamp = datetime.fromtimestamp(int(ts_value.get("timestamp")) / 1000, UTC).strftime("%Y-%m-%d %H:%M:%S")
                         data_rows.append(
                             {
                                 "city": city,
@@ -99,7 +99,7 @@ def aggregate_pollution_data(start: str, end: str) -> pd.DataFrame:
                                 "lon": lon,
                                 "pollutant": pollutant_name,
                                 "timestamp": timestamp,
-                                "value": ts_value["value"],
+                                "value": ts_value.get("value"),
                             }
                         )
     return pd.DataFrame(data_rows)
