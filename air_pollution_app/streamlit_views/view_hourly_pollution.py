@@ -7,10 +7,10 @@ from data.irceline_data_fetcher import aggregate_pollution_data
 
 
 def render_hourly_pollution_view(start_date: str, end_date: str) -> None:
-    city_pollution_pd = aggregate_pollution_data(start_date, end_date)
+    city_pollution_df = aggregate_pollution_data(start_date, end_date)
 
     # Ask user input
-    selected_city = st.selectbox("Select City", sorted(city_pollution_pd["city"].unique()))
+    selected_city = st.selectbox("Select City", sorted(city_pollution_df["city"].unique()))
     aggregation_method = st.selectbox(
         "Select aggregation method in case of multiple stations",
         options=AGGREGATION_FUNCTIONS.keys(),
@@ -19,7 +19,7 @@ def render_hourly_pollution_view(start_date: str, end_date: str) -> None:
 
     # Aggregate pollution data for selected city
     pollution_per_city = agg_hourly_pollution_for_city(
-        city_pollution_pd,
+        city_pollution_df,
         selected_city,
         AGGREGATION_FUNCTIONS[aggregation_method]
     )
@@ -33,12 +33,12 @@ def render_hourly_pollution_view(start_date: str, end_date: str) -> None:
 
 
 def agg_hourly_pollution_for_city(
-    city_pollution_pd: pd.DataFrame,
+    city_pollution_df: pd.DataFrame,
     selected_city: str,
     aggregation_func: str
 ) -> pd.DataFrame:
     return (
-        city_pollution_pd
+        city_pollution_df
         .query("city == @selected_city")
         .groupby(["city", "pollutant", "timestamp"])
         .agg(

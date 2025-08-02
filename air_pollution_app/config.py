@@ -21,3 +21,4 @@ TOP_NB_POLLUTED_CITIES = 10
 class ViewMode(str, Enum):
     TOP_POLLUTING_CITIES = "Top Polluting Cities"
     HOURLY_VIEW = "Hourly View"
+    STATION_OVERVIEW = "Station Overview"

@@ -63,13 +63,11 @@ def extract_city(label: str) -> str:
     return city
 
 
-@st.cache_data
 def is_in_region(lat: float, lon: float) -> bool:
     return any(region_gdf.contains(Point(lon, lat)))
 
 
-@st.cache_data
-def aggregate_pollution_data(start_date: str, end_date: str) -> pd.DataFrame:
+def get_station_details():
     stations = fetch_stations()
     data_rows = []
 
@@ -79,12 +77,33 @@ def aggregate_pollution_data(start_date: str, end_date: str) -> pd.DataFrame:
             continue
 
         city = extract_city(station.get("properties").get("label"))
-        station_id = station.get("properties").get("id")
 
-        ts_metadata = fetch_station_timeseries(station_id)
-        for ts_id, ts_details in (
-            ts_metadata.get("properties").get("timeseries").items()
-        ):
+        data_rows.append(
+            {
+                "city": city,
+                "station_id": station.get("properties").get("id"),
+                "label": station.get("properties").get("label"),
+                "lat": lat,
+                "lon": lon,
+            }
+        )
+
+    return pd.DataFrame(data_rows)
+
+
+@st.cache_data
+def aggregate_pollution_data(start_date: str, end_date: str) -> pd.DataFrame:
+    stations_df = get_station_details()
+    data_rows = []
+
+    for _, row in stations_df.iterrows():
+        station_id = row["station_id"]
+        city = row["city"]
+        lat = row["lat"]
+        lon = row["lon"]
+
+        station_timeseries = fetch_station_timeseries(station_id).get("properties").get("timeseries")
+        for ts_id, ts_details in station_timeseries.items():
             phenomenon_id = ts_details.get("phenomenon").get("id")
             for pollutant_name, pollution_id in POLLUTANTS.items():
                 if phenomenon_id == pollution_id:
